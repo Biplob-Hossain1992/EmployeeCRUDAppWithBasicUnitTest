@@ -1,0 +1,304 @@
+﻿@{
+    ViewData["Title"] = "Department";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<section class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <h4 class="card-title no-print">Department</h4>
+                            </div>
+                            <div class="col-auto">
+                                <button type="button" data-bs-toggle="modal" id="btnNew" class="btn btn-success">Add New</button>
+                            </div>
+                        </div>
+                        <div class="col-md-8" style="text-align: center; margin: 0px; padding: 0px;">
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <table id="DepartmentList" class="table table-hover table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Manager</th>
+                                    <th class="text-right">Budget</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</section>
+
+
+
+<div class="modal fade" id="modalDepartmentCreate" role="dialog" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title m-0" id="modalTitle">Add Department</h6>
+                <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="card-body">
+                    <form id="frmDepartmentCreate" enctype="multipart/form-data">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <input type="hidden" id="id" />
+                                    <label for="name">Name</label>
+                                    <input type="text" class="form-control" autocomplete="off" id="name" name="name" placeholder="Enter Department Name" oninput="this.value = this.value.replace(/[^a-zA-Z0-9. ]/, '')">
+                                </div>
+                                <div class="form-group">
+                                    <label for="managerId">Position</label>
+                                    <select id="managerId" name="managerId" class="form-control select2Modal"></select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="budget">Budget</label>
+                                    <input type="text" class="form-control budget" autocomplete="off" id="budget" name="budget" placeholder="Enter Budget">
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success btn-sm" id="btnSave">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts{
+    <script type="text/javascript">
+        (() => {
+            $("#frmDepartmentCreate").validate({
+                rules: {
+                    name: { required: true },
+                    budget: { required: true },
+                },
+                messages: {
+                    name: 'Name is required',
+                    budget: 'Budget is required',
+                },
+                errorElement: 'span',
+                errorPlacement: function (error, element) {
+                    error.addClass('invalid-feedback');
+                    element.closest('.form-group').append(error);
+                },
+                highlight: function (element, errorClass, validClass) {
+                    $(element).addClass('is-invalid');
+                },
+                unhighlight: function (element, errorClass, validClass) {
+                    $(element).removeClass('is-invalid');
+                }
+            });
+        })()
+
+        $("#btnNew").click(function () {
+            getDrpEmployees();
+            $("#modalDepartmentCreate #modalTitle").text("Create Department");
+            $("#modalDepartmentCreate #btnSave").text("Save Changes");
+            $("#frmDepartmentCreate").trigger("reset");
+            $('.select2Modal').val('').trigger('change');
+            $("#modalDepartmentCreate").modal('show');
+        });
+
+        const getDrpEmployees = () => {
+            return $.ajax({
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                url: baseURL + '/api/Employee/GetDrpEmployees',
+                dataType: "json",
+                type: 'get',
+                success: function (res) {
+                    $("#modalDepartmentCreate #managerId").empty();
+                    let option = `<option value="">Select...</option>`;
+                    $.each(res, function (key, val) {
+                        option += `<option value="${val.id}">${val.name}</option>`;
+                    });
+                    $("#modalDepartmentCreate #managerId").append(option);
+                }
+            });
+        }
+        $(document).on("click", "#btnSave", function () {
+            if ($("#frmDepartmentCreate").valid()) {
+                var requestBody = {
+                    departmentName: $("#name").val(),
+                    budget: $("#budget").val(),
+                };
+                if ($("#managerId").val() != ""){
+                    requestBody.managerId = +$("#managerId").val();
+                }
+                let url = '/api/Department/CreateDepartment';
+                let btnText = $(this).text();
+                if (btnText == "Update Changes") {
+                    url = '/api/Department/UpdateDepartment';
+                    requestBody.id = +$("#id").val();
+                }
+                $.ajax({
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    url: baseURL + url,
+                    dataType: 'json',
+                    data: JSON.stringify(requestBody),
+                    type: 'post',
+                    success: function (res) {
+                        if (res.type == "Success") {
+                            toastr.success(res.message, res.type);
+                            $("#frmDepartmentCreate").trigger("reset");
+                            $('.select2Modal').val('').trigger('change');
+                            $("#modalDepartmentCreate").modal('hide');
+                            dataTable.fnFilter();
+                        } else {
+                            toastr.error(res.message, res.type);
+                        }
+                        $("#btnSave").prop("disabled", false);
+                    },
+                    error: function (request, status, error) {
+                        $("#btnSave").prop("disabled", false);
+                    }
+                });
+            }
+        });
+        var dataTable = $("#DepartmentList").dataTable({
+            "processing": true,
+            "serverSide": true,
+            "filter": true,
+            "pageLength": 10,
+            "autoWidth": false,
+            "lengthMenu": [[10, 50, 100, 999999999], [10, 50, 100, "All"]],
+            "order": [[0, "desc"]],
+            "ajax": {
+                "url": baseURL + '/api/Department/GetAllDepartmentForDataTable',
+                "type": "POST",
+                "data": function (data) {
+                    //Search parameter
+                }
+            },
+            "columns": [
+                {
+                    "data": null, "name": null, "orderable": false, "render": function (data, type, full, meta) {
+                        return `<td>${full.departmentName}</td>`;
+                    }
+                },
+                {
+                    "data": null, "name": null, "orderable": false, "render": function (data, type, full, meta) {
+                        return `<td>${full.manager}</td>`;
+                    }
+                },
+                {
+                    "data": null, "name": null, "orderable": false, "render": function (data, type, full, meta) {
+                        return `<td><p style="text-align:right">${full.budget.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</p></td>`;
+                    }
+                },
+                {
+                    "data": "Null", "orderable": false,
+                    "render": function (data, type, full, meta) {
+                        if (full.deleted) {
+                            return `<td><p style="color: indianred;text-align:center">Deleted</p></td>`
+                        } else {
+                            return `<td><p style="text-align:center">
+                                        <i class="fa fa-edit edit" data-id="${full.id}" style="cursor:pointer;"></i>
+                                        <i class="fa fa-trash delete" data-id="${full.id}" style="cursor:pointer;color:red"></i>
+                                    </p></td>`
+                        }
+                    }
+                }
+            ]
+        });
+
+        $(document).on("click", ".edit", function (e) {
+            e.preventDefault();
+            let id = $(this).data('id');
+            $("#id").val(id);
+            $.ajax({
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                url: baseURL + '/api/Department/GetDepartmentById',
+                data: { id },
+                dataType: "json",
+                type: 'get',
+                success: function (res) {
+                    $("#name").val(res.departmentName);
+                    $("#budget").val(res.budget);
+                    $.when(
+                        getDrpEmployees()
+                    ).done(function () {
+                        if(res.managerId != undefined){
+                            $("#managerId").val(res.managerId).trigger('change');
+                        }                        
+                    });
+                    $("#modalDepartmentCreate #modalTitle").text("Update Employee");
+                    $("#modalDepartmentCreate #btnSave").text("Update Changes");
+                    $("#modalDepartmentCreate").modal('show');
+                }
+            });
+        });
+        $(document).on("click", ".delete", function (e) {
+            e.preventDefault();
+            var id = $(this).data('id');
+            $.confirm({
+                title: 'Delete Confirmation!',
+                content: 'Are you sure want to delete this?',
+                type: 'red',
+                typeAnimated: true,
+                buttons: {
+                    tryAgain: {
+                        text: 'Delete',
+                        btnClass: 'btn-red',
+                        action: function () {
+                            $.ajax({
+                                headers: {
+                                    'Accept': 'application/json',
+                                    'Content-Type': 'application/json'
+                                },
+                                url: baseURL + '/api/Department/RemoveDepartment?id=' + id,
+                                dataType: "json",
+                                type: 'delete',
+                                success: function (flag) {
+                                    if (flag == true) {
+                                        $.confirm({
+                                            title: 'Confirmation!',
+                                            content: 'Record has been deleted successfully!',
+                                            type: 'green',
+                                            buttons: {
+                                                somethingElse: {
+                                                    text: 'Ok',
+                                                    btnClass: 'btn-blue',
+                                                    keys: ['enter'],
+                                                    action: function () { }
+                                                }
+                                            }
+                                        });
+                                        dataTable.fnFilter();
+                                    }
+                                },
+                                error: function (xhr) {
+                                    console.log(xhr);
+                                }
+                            });
+                        }
+                    },
+                    close: function () {
+                    }
+                }
+            });
+        });
+    </script>
+}

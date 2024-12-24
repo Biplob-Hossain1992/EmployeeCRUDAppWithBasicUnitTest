@@ -1,0 +1,327 @@
+﻿@{
+    ViewData["Title"] = "Performance Review";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<section class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <h4 class="card-title no-print">Performance Review</h4>
+                            </div>
+                            <div class="col-auto">
+                                <button type="button" data-bs-toggle="modal" id="btnNew" class="btn btn-success">Add New</button>
+                            </div>
+                        </div>
+                        <div class="col-md-8" style="text-align: center; margin: 0px; padding: 0px;">
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <table id="ReviewList" class="table table-hover table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Employee</th>
+                                    <th style="text-align:center;">Review Date</th>
+                                    <th style="text-align:center;">Review Score</th>
+                                    <th>Review Note</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</section>
+
+
+
+<div class="modal fade" id="modalReview" role="dialog" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title m-0" id="modalTitle">Add Review</h6>
+                <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="card-body">
+                    <form id="frmReviewCreate" enctype="multipart/form-data">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <input type="hidden" id="id" />
+                                    <label for="employeeId">Employee</label>
+                                    <select id="employeeId" name="employeeId" class="form-control select2Modal"></select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="reviewDate">Review Date</label>
+                                    <input type="text" class="form-control datepicker" id="reviewDate" name="reviewDate" placeholder="Enter Review Date">
+                                </div>
+                                <div class="form-group">
+                                    <label for="reviewScore">Review Score</label>
+                                    <select id="reviewScore" name="reviewScore" class="form-control">
+                                        <option value="1">1</option>
+                                        <option value="2">2</option>
+                                        <option value="3">3</option>
+                                        <option value="4">4</option>
+                                        <option value="5">5</option>
+                                        <option value="6">6</option>
+                                        <option value="7">7</option>
+                                        <option value="8">8</option>
+                                        <option value="9">9</option>
+                                        <option value="10">10</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="reviewNote">Review Note</label>
+                                    <input type="text" class="form-control reviewNote" autocomplete="off" id="reviewNote" name="reviewNote" placeholder="Enter Review Note">
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success btn-sm" id="btnSave">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts{
+    <script type="text/javascript">
+        (() => {
+            $("#frmReviewCreate").validate({
+                rules: {
+                    employeeId: { required: true },
+                    reviewDate: { required: true },
+                    reviewScore: { required: true }
+                },
+                messages: {
+                    employeeId: 'Employee is required',
+                    reviewDate: 'Review Date is required',
+                    reviewScore: 'Review Score is required'
+                },
+                errorElement: 'span',
+                errorPlacement: function (error, element) {
+                    error.addClass('invalid-feedback');
+                    element.closest('.form-group').append(error);
+                },
+                highlight: function (element, errorClass, validClass) {
+                    $(element).addClass('is-invalid');
+                },
+                unhighlight: function (element, errorClass, validClass) {
+                    $(element).removeClass('is-invalid');
+                }
+            });
+        })()
+
+        $("#btnNew").click(function () {
+            getDrpEmployees();
+            $("#modalReview #modalTitle").text("Create Review");
+            $("#modalReview #btnSave").text("Save Changes");
+            $("#frmReviewCreate").trigger("reset");
+            $('.select2Modal').val('').trigger('change');
+            $("#modalReview").modal('show');
+        });
+
+        const getDrpEmployees = () => {
+            return $.ajax({
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                url: baseURL + '/api/Employee/GetDrpEmployees',
+                dataType: "json",
+                type: 'get',
+                success: function (res) {
+                    $("#modalReview #employeeId").empty();
+                    let option = `<option value="">Select...</option>`;
+                    $.each(res, function (key, val) {
+                        option += `<option value="${val.id}">${val.name}</option>`;
+                    });
+                    $("#modalReview #employeeId").append(option);
+                }
+            });
+        }
+        $(document).on("click", "#btnSave", function () {
+            if ($("#frmReviewCreate").valid()) {
+                var requestBody = {
+                    employeeId: +$("#employeeId").val(),
+                    formatedDate: $("#reviewDate").val(),
+                    reviewScore: $("#reviewScore").val()
+                };
+                if ($("#reviewNote").val() != undefined){
+                    requestBody.reviewNote = $("#reviewNote").val();
+                }
+                let url = '/api/PerformanceReview/CreateReview';
+                let btnText = $(this).text();
+                if (btnText == "Update Changes") {
+                    url = '/api/PerformanceReview/UpdateReview';
+                    requestBody.id = +$("#id").val();
+                }
+                $.ajax({
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    url: baseURL + url,
+                    dataType: 'json',
+                    data: JSON.stringify(requestBody),
+                    type: 'post',
+                    success: function (res) {
+                        if (res.type == "Success") {
+                            toastr.success(res.message, res.type);
+                            $("#frmReviewCreate").trigger("reset");
+                            $('.select2Modal').val('').trigger('change');
+                            $("#modalReview").modal('hide');
+                            dataTable.fnFilter();
+                        } else {
+                            toastr.error(res.message, res.type);
+                        }
+                        $("#btnSave").prop("disabled", false);
+                    },
+                    error: function (request, status, error) {
+                        $("#btnSave").prop("disabled", false);
+                    }
+                });
+            }
+        });
+        var dataTable = $("#ReviewList").dataTable({
+            "processing": true,
+            "serverSide": true,
+            "filter": true,
+            "pageLength": 10,
+            "autoWidth": false,
+            "lengthMenu": [[10, 50, 100, 999999999], [10, 50, 100, "All"]],
+            "order": [[0, "desc"]],
+            "ajax": {
+                "url": baseURL + '/api/PerformanceReview/GetAllReviewForDataTable',
+                "type": "POST",
+                "data": function (data) {
+                    //Search parameter
+                }
+            },
+            "columns": [
+                {
+                    "data": null, "name": null, "orderable": false, "render": function (data, type, full, meta) {
+                        return `<td>${full.employeeName}</td>`;
+                    }
+                },
+                {
+                    "data": null, "name": null, "orderable": false, "render": function (data, type, full, meta) {
+                        return `<td><p style="text-align:center">${full.formatedDate}</p></td>`;
+                    }
+                },
+                {
+                    "data": null, "name": null, "orderable": false, "render": function (data, type, full, meta) {
+                        return `<td><p style="text-align:center">${full.reviewScore}</p></td>`;
+                    }
+                },
+                {
+                    "data": null, "name": null, "orderable": false, "render": function (data, type, full, meta) {
+                        return `<td>${full.reviewNote}</td>`;
+                    }
+                },
+                {
+                    "data": "Null", "orderable": false,
+                    "render": function (data, type, full, meta) {
+                        if (full.deleted) {
+                            return `<td><p style="color: indianred;text-align:center">Deleted</p></td>`
+                        } else {
+                            return `<td><p style="text-align:center">
+                                        <i class="fa fa-edit edit" data-id="${full.id}" style="cursor:pointer;"></i>
+                                        <i class="fa fa-trash delete" data-id="${full.id}" style="cursor:pointer;color:red"></i>
+                                    </p></td>`
+                        }
+                    }
+                }
+            ]
+        });
+
+        $(document).on("click", ".edit", function (e) {
+            e.preventDefault();
+            let id = $(this).data('id');
+            $("#id").val(id);
+            $.ajax({
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                url: baseURL + '/api/PerformanceReview/GetReviewById',
+                data: { id },
+                dataType: "json",
+                type: 'get',
+                success: function (res) {
+                    $("#reviewDate").val(res.formatedDate);
+                    $("#reviewScore").val(res.reviewScore).trigger('change');
+                    $("#reviewNote").val(res.reviewNote);
+                    $.when(
+                        getDrpEmployees()
+                    ).done(function () {
+                        $("#employeeId").val(res.employeeId).trigger('change');
+                    });
+                    $("#modalReview #modalTitle").text("Update Review");
+                    $("#modalReview #btnSave").text("Update Changes");
+                    $("#modalReview").modal('show');
+                }
+            });
+        });
+        $(document).on("click", ".delete", function (e) {
+            e.preventDefault();
+            var id = $(this).data('id');
+            $.confirm({
+                title: 'Delete Confirmation!',
+                content: 'Are you sure want to delete this?',
+                type: 'red',
+                typeAnimated: true,
+                buttons: {
+                    tryAgain: {
+                        text: 'Delete',
+                        btnClass: 'btn-red',
+                        action: function () {
+                            $.ajax({
+                                headers: {
+                                    'Accept': 'application/json',
+                                    'Content-Type': 'application/json'
+                                },
+                                url: baseURL + '/api/PerformanceReview/RemoveReview?id=' + id,
+                                dataType: "json",
+                                type: 'delete',
+                                success: function (flag) {
+                                    if (flag == true) {
+                                        $.confirm({
+                                            title: 'Confirmation!',
+                                            content: 'Record has been deleted successfully!',
+                                            type: 'green',
+                                            buttons: {
+                                                somethingElse: {
+                                                    text: 'Ok',
+                                                    btnClass: 'btn-blue',
+                                                    keys: ['enter'],
+                                                    action: function () { }
+                                                }
+                                            }
+                                        });
+                                        dataTable.fnFilter();
+                                    }
+                                },
+                                error: function (xhr) {
+                                    console.log(xhr);
+                                }
+                            });
+                        }
+                    },
+                    close: function () {
+                    }
+                }
+            });
+        });
+    </script>
+}

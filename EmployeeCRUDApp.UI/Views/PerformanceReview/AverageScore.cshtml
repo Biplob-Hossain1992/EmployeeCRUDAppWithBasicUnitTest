@@ -1,0 +1,60 @@
+﻿@{
+    ViewData["Title"] = "Average Score";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<section class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <h4 class="card-title no-print">Average Score</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <table id="ScoreList" class="table table-hover table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Department</th>
+                                    <th class="text-center">Average Score</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+@section Scripts{
+    <script type="text/javascript">
+        (() => {
+            $.ajax({
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                url: baseURL + '/api/PerformanceReview/GetAverageScore',
+                dataType: "json",
+                type: 'get',
+                success: function (res) {
+                    $("#ScoreList tbody").empty();
+                    let option = ``;
+                    $.each(res, function (key, val) {
+                        option += `<tr>
+                                        <td>${val.departmentName}</td>
+                                        <td class="text-center">${val.averageScore}</td>
+                                   </tr>`;
+                    });
+                    $("#ScoreList tbody").append(option);
+                }
+            });
+        })()
+    </script>
+}
