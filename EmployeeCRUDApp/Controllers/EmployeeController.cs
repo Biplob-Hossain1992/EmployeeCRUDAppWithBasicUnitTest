@@ -45,7 +45,7 @@ namespace EmployeeCRUDApp.Controllers
             }
             if (!string.IsNullOrWhiteSpace(name))
             {
-                data = data.Where(x => x.Name.ToLower().Contains(name.ToLower())).ToList();
+                data = data.Where(x => x.Name.ToLower().Equals(name.ToLower())).ToList();
             }
             if (!string.IsNullOrWhiteSpace(departmentId))
             {
