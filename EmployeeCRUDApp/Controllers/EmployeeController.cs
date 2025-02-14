@@ -1,12 +1,14 @@
 ﻿using EmployeeCRUDApp.Application.Interfaces.IServices;
 using EmployeeCRUDApp.Application.Services;
 using EmployeeCRUDApp.Application.ViewModel;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EmployeeCRUDApp.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [EnableCors("CorsPolicy")]
     public class EmployeeController : ControllerBase
     {
         private readonly IEmployeeService _employeeService;
@@ -64,6 +66,12 @@ namespace EmployeeCRUDApp.Controllers
             int recordsTotal = data.Count;
             return Ok(new { draw, recordsFiltered = recordsTotal, recordsTotal, data });
         }
+        [Route("GetEmployeesForAngular")]
+        [HttpGet]
+        public async Task<ActionResult<List<VmEmployee>>> GetEmployeesForAngular()
+        {            
+            return Ok(await _employeeService.GetAllEmployee(0, 100));
+        }
         [Route("GetDrpEmployees")]
         [HttpGet]
         public async Task<ActionResult<List<VmEmployee>>> GetDrpEmployees()
@@ -83,7 +91,7 @@ namespace EmployeeCRUDApp.Controllers
             vm.JoinDate = Convert.ToDateTime(vm.FormatedDate);
             return Ok(await _employeeService.UpdateEmployee(vm));
         }
-        [Route("RemoveEmployee")]
+        [Route("RemoveEmployee/{id}")]
         [HttpDelete]
         public async Task<ActionResult<bool>> RemoveEmployee(int id)
         {
